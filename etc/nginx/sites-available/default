@@ -1,0 +1,21 @@
+server {
+  listen 80 default_server;
+  listen [::]:80 default_server;
+
+  include snippets/www.conf;
+
+  location /.well-known/acme-challenge/ {
+    default_type "text/plain";
+    root /var/www/html;
+  }
+
+  location / {
+    return 301 https://$host$request_uri;
+  }
+}
+
+server {
+  listen 443 ssl default_server;
+  listen [::]:443 ssl default_server;
+  ssl_reject_handshake on;
+}

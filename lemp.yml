@@ -1,0 +1,97 @@
+---
+- hosts: all
+  vars:
+    php_version: 7.4
+  tasks:
+  - name: install webserver packages
+    apt:
+      name:
+        - nginx
+        - php{{ php_version }}-fpm
+        - php{{ php_version }}-zip
+        - php{{ php_version }}-xml
+        - php{{ php_version }}-mysql
+        - php{{ php_version }}-mbstring
+        - php{{ php_version }}-intl
+        - php{{ php_version }}-gd
+        - php{{ php_version }}-curl
+        - php{{ php_version }}-apcu
+        - mariadb-server
+        - python3-mysqldb
+        - certbot
+      state: present
+
+  - name: configure nginx.conf
+    copy:
+      src: etc/nginx/nginx.conf
+      dest: /etc/nginx/nginx.conf
+
+  - name: configure nginx ssl.conf
+    copy:
+      src: etc/nginx/snippets/ssl.conf
+      dest: /etc/nginx/snippets/ssl.conf
+
+  - name: configure nginx dir.conf
+    copy:
+      src: etc/nginx/snippets/dir.conf
+      dest: /etc/nginx/snippets/dir.conf
+
+  - name: configure nginx www.conf
+    copy:
+      src: etc/nginx/snippets/www.conf
+      dest: /etc/nginx/snippets/www.conf
+
+  - name: configure nginx php.conf
+    copy:
+      src: etc/nginx/snippets/php.conf
+      dest: /etc/nginx/snippets/php.conf
+
+  - name: configure custom default site
+    copy:
+      src: etc/nginx/sites-available/default
+      dest: /etc/nginx/sites-available/default
+
+  - name: download dhparams from mozilla
+    get_url:
+      url: https://ssl-config.mozilla.org/ffdhe4096.txt
+      dest: /etc/nginx/dhparams
+
+  - name: remove default html file
+    file:
+      path: /var/www/html/index.nginx-debian.html
+      state: absent
+
+  - name: set correct permissions for default html directory
+    file:
+      path: /var/www/html
+      state: directory
+      owner: www-data
+      group: www-data
+
+  - name: reload nginx
+    service:
+      name: nginx
+      state: reloaded
+
+  - name: configure letsencrypt config
+    copy:
+      src: etc/letsencrypt/cli.ini
+      dest: /etc/letsencrypt/cli.ini
+
+  - name: php configuration
+    register: php_conf
+    copy:
+      src: etc/php/conf.d/99-local.ini
+      dest: /etc/php/{{ php_version }}/fpm/conf.d/99-local.ini
+
+  - name: php-fpm configuration
+    register: php_fpm_conf
+    copy:
+      src: etc/php/pool.d/www.conf
+      dest: /etc/php/{{ php_version }}/fpm/pool.d/www.conf
+
+  - name: restart php-fpm
+    when: php_conf.changed or php_fpm_conf.changed
+    service:
+      name: php{{ php_version }}-fpm
+      state: restarted

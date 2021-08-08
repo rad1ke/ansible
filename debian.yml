@@ -1,0 +1,78 @@
+---
+- hosts: all
+  tasks:
+  - name: disable grub timeout
+    register: grub
+    lineinfile:
+      path: /etc/default/grub
+      regexp: "^GRUB_TIMEOUT="
+      line: "GRUB_TIMEOUT=0"
+
+  - name: update grub bootloader
+    when: grub.changed
+    shell: "/usr/sbin/grub-mkconfig -o /boot/grub/grub.cfg"
+
+  - name: remove default user
+    user:
+      name: default
+      state: absent
+      remove: yes
+
+  - name: disable sshd banner
+    register: sshd_banner
+    file:
+      dest: /etc/update-motd.d/10-uname
+      mode: a-x
+
+  - name: disable sshd motd
+    register: sshd_motd
+    copy:
+      content: ""
+      dest: /etc/motd
+
+  - name: configure sshd_config
+    register: sshd_config
+    copy:
+      content: "ChallengeResponseAuthentication no\nUsePAM yes\nX11Forwarding no \nPrintMotd no\nAcceptEnv LANG LC_*\nSubsystem sftp /usr/lib/openssh/sftp-server\nPasswordAuthentication no\nPrintLastLog no"
+      dest: /etc/ssh/sshd_config
+      validate: /usr/sbin/sshd -T -f %s
+
+  - name: restart sshd
+    when: sshd_banner.changed or sshd_motd.changed or sshd_config.changed
+    service:
+      name: ssh
+      state: restarted
+
+  - name: remove hetzner apt repositories
+    file:
+      path: "{{ item }}"
+      state: absent
+    with_items:
+      - /etc/apt/sources.list.d/hetzner-mirror.list
+      - /etc/apt/sources.list.d/hetzner-security-updates.list
+
+  - name: update packages
+    apt:
+      name: "*"
+      state: latest
+      update_cache: yes
+
+  - name: uninstall cryptsetup
+    apt:
+      name: cryptsetup
+      state: absent
+      autoremove: yes
+      purge: yes
+
+  - name: install ansible dependencies and base packages
+    apt:
+      name:
+        - python3-apt
+        - wget
+        - zip
+        - unzip
+        - sudo
+        - man
+        - net-tools
+        - open-vm-tools
+      state: present
