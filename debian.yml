@@ -61,12 +61,15 @@
   - name: install ansible dependencies and base packages
     apt:
       name:
-        - python3-apt
-        - wget
+        - sudo
         - zip
         - unzip
-        - sudo
         - man
+        - curl
+        - wget
+        - gnupg
         - net-tools
+        - python3-apt
+        - apt-transport-https
         - open-vm-tools
       state: present
