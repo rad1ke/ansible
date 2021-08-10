@@ -1,0 +1,28 @@
+---
+- hosts: all
+  tasks:
+
+  - name: add docker gpg key
+    apt_key:
+      url: https://download.docker.com/linux/debian/gpg
+      state: present
+
+  - name: add docker repository
+    copy:
+      content: "deb [arch=amd64] https://download.docker.com/linux/debian {{ansible_lsb.codename}} stable"
+      dest: /etc/apt/sources.list.d/docker.list
+
+  - name: install docker packages
+    apt:
+      name:
+        - docker-ce
+        - docker-ce-cli
+        - containerd.io
+      state: present
+      update_cache: yes
+
+  - name: install docker-compose
+    get_url: 
+      url: https://github.com/docker/compose/releases/latest/download/docker-compose-Linux-x86_64
+      dest: /usr/local/bin/docker-compose
+      mode: 0755
