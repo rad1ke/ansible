@@ -12,12 +12,6 @@
     when: grub.changed
     shell: "/usr/sbin/grub-mkconfig -o /boot/grub/grub.cfg"
 
-  - name: remove default user
-    user:
-      name: default
-      state: absent
-      remove: yes
-
   - name: disable sshd banner
     register: sshd_banner
     file:
