@@ -46,6 +46,11 @@
       - /etc/apt/sources.list.d/hetzner-mirror.list
       - /etc/apt/sources.list.d/hetzner-security-updates.list
 
+  - name: setup apt main apt repositories
+    copy:
+      content: "deb http://deb.debian.org/debian/ bullseye main\ndeb http://deb.debian.org/debian/ bullseye-updates main\ndeb http://security.debian.org/debian-security bullseye-security main"
+      dest: /etc/apt/sources.list
+
   - name: update packages
     apt:
       name: "*"
