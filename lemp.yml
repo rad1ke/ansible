@@ -57,6 +57,18 @@
       url: https://ssl-config.mozilla.org/ffdhe4096.txt
       dest: /etc/nginx/dhparams
 
+  # certificate generation can be removed if using nginx v1.19.3 or later
+  - name: generate default ssl private key
+    community.crypto.openssl_privatekey:
+      path: /etc/ssl/private/default.pem
+      size: 2048
+
+  - name: generate default ssl public key
+    community.crypto.x509_certificate:
+      path: /etc/ssl/certs/default.crt
+      privatekey_path: /etc/ssl/private/default.pem
+      provider: selfsigned
+
   - name: remove default html file
     file:
       path: /var/www/html/index.nginx-debian.html

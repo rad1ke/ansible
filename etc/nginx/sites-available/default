@@ -17,5 +17,9 @@ server {
 server {
   listen 443 ssl default_server;
   listen [::]:443 ssl default_server;
-  ssl_reject_handshake on;
+  # use following option instead of the lines below if using nginx v1.19.3 or later
+  # ssl_reject_handshake on;
+  ssl_certificate /etc/ssl/certs/default.crt;
+  ssl_certificate_key /etc/ssl/private/default.pem;
+  return 444;
 }
