@@ -74,6 +74,7 @@
         - curl
         - wget
         - gnupg
+        - htop
         - net-tools
         - python3-apt
         - apt-transport-https
