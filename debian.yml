@@ -90,3 +90,17 @@
     copy:
       content: "APT::Periodic::Enable \"1\";\nAPT::Periodic::Update-Package-Lists \"1\";\nAPT::Periodic::Download-Upgradeable-Packages \"1\";\nAPT::Periodic::Unattended-Upgrade \"1\";\nAPT::Periodic::AutocleanInterval \"7\";"
       dest: /etc/apt/apt.conf.d/02periodic
+
+  - name: set ntp server
+    register: ntp_server
+    copy:
+      content: "[Time]\nNTP=time.google.com"
+      dest: /etc/systemd/timesyncd.conf
+
+  - name: restart systemd-timesyncd
+    when: ntp_server.changed
+    service:
+      name: systemd-timesyncd
+      state: restarted
+      enabled: yes
+
