@@ -78,4 +78,15 @@
         - python3-apt
         - apt-transport-https
         - open-vm-tools
+        - unattended-upgrades
       state: present
+
+  - name: configure unattended upgrades
+    copy:
+      content: "Unattended-Upgrade::Origins-Pattern {\n        \"origin=Debian,codename=${distro_codename}-security,label=Debian-Security\";\n};\nUnattended-Upgrade::Package-Blacklist {\n};"
+      dest: /etc/apt/apt.conf.d/50unattended-upgrades
+
+  - name: enable unattended upgrades
+    copy:
+      content: "APT::Periodic::Enable \"1\";\nAPT::Periodic::Update-Package-Lists \"1\";\nAPT::Periodic::Download-Upgradeable-Packages \"1\";\nAPT::Periodic::Unattended-Upgrade \"1\";\nAPT::Periodic::AutocleanInterval \"7\";"
+      dest: /etc/apt/apt.conf.d/02periodic
