@@ -83,7 +83,7 @@
 
   - name: configure unattended upgrades
     copy:
-      content: "Unattended-Upgrade::Origins-Pattern {\n        \"origin=Debian,codename=${distro_codename}-security,label=Debian-Security\";\n};\nUnattended-Upgrade::Package-Blacklist {\n};"
+      content: "Unattended-Upgrade::Origins-Pattern {\n  \"origin=Debian,codename=${distro_codename}-security,label=Debian-Security\";\n};\n  Unattended-Upgrade::Package-Blacklist {\n};"
       dest: /etc/apt/apt.conf.d/50unattended-upgrades
 
   - name: enable unattended upgrades
