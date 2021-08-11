@@ -1,26 +1,28 @@
 ---
 - hosts: all
-  vars:
-    php_version: 7.4
   tasks:
 
   - name: install webserver packages
     apt:
       name:
         - nginx
-        - php{{ php_version }}-fpm
-        - php{{ php_version }}-zip
-        - php{{ php_version }}-xml
-        - php{{ php_version }}-mysql
-        - php{{ php_version }}-mbstring
-        - php{{ php_version }}-intl
-        - php{{ php_version }}-gd
-        - php{{ php_version }}-curl
-        - php{{ php_version }}-apcu
+        - php-fpm
+        - php-zip
+        - php-xml
+        - php-mysql
+        - php-mbstring
+        - php-intl
+        - php-gd
+        - php-curl
+        - php-apcu
         - mariadb-server
         - python3-mysqldb
         - certbot
       state: present
+
+  - name: get php version
+    shell: php -v | head -n 1 | cut -d " " -f 2 | cut -f1-2 -d"."
+    register: php_version
 
   - name: configure nginx.conf
     copy:
@@ -95,16 +97,16 @@
     register: php_conf
     copy:
       src: etc/php/conf.d/99-local.ini
-      dest: /etc/php/{{ php_version }}/fpm/conf.d/99-local.ini
+      dest: /etc/php/{{ php_version.stdout }}/fpm/conf.d/99-local.ini
 
   - name: php-fpm configuration
     register: php_fpm_conf
     copy:
       src: etc/php/pool.d/www.conf
-      dest: /etc/php/{{ php_version }}/fpm/pool.d/www.conf
+      dest: /etc/php/{{ php_version.stdout }}/fpm/pool.d/www.conf
 
   - name: restart php-fpm
     when: php_conf.changed or php_fpm_conf.changed
     service:
-      name: php{{ php_version }}-fpm
+      name: php{{ php_version.stdout }}-fpm
       state: restarted
