@@ -104,3 +104,36 @@
       state: restarted
       enabled: yes
 
+  - name: check if swapfile is created
+    stat:
+      path: /swapfile
+    register: swap
+
+  - name: create swapfile
+    command: fallocate -l 1536M /swapfile
+    when: swap.stat.exists == False
+
+  - name: set permissions for swapfile
+    file:
+      dest: /swapfile
+      mode: 0600
+    when: swap.stat.exists == False
+
+  - name: setup swapfile partition
+    command: mkswap /swapfile
+    when: swap.stat.exists == False
+
+  - name: enable swapfile
+    command: swapon /swapfile
+    when: swap.stat.exists == False
+
+  - name: add swapfile to /etc/fstab
+    mount:
+      src: /swapfile
+      name: "none"
+      fstype: "swap"
+      opts: "sw,nofail"
+      dump: "0"
+      passno: "0"
+      state: present
+    when: swap.stat.exists == False
