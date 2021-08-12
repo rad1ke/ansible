@@ -88,6 +88,7 @@
       state: directory
       owner: www-data
       group: www-data
+      recurse: yes
 
   - name: reload nginx
     service:
