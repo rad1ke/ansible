@@ -1,0 +1,137 @@
+---
+- hosts: all
+  vars:
+    domain: example.org
+    mysql_user_database: example
+    mysql_password: nXhvHYgbAKdEsyzfLZU4ObPqyv64Awxz4JWzC6Z3pbwZ1tbR1n5ktRzLNNJKs6b2
+    mysql_root_password: E9AihdfcDuzayG5DWVHPJ8yPnD3JANS4i4XifemPUkvjB1dGtg3R4qWHHH4ILfEc
+    title: Lorem Ipsum
+    wordpress_user: admin
+    wordpress_password: TxLIRcwdA32EAOu9npxg0ZDhl9lFb2aGe7oOh4LaJGdoE8K7MarBYVZr45ELL2Cj
+    wordpress_email: admin@example.org
+
+  tasks:
+  - name: request letsencrypt rsa certificate
+    command: certbot certonly --cert-name {{ domain }}  --key-type rsa --rsa-key-size 4096 --keep-until-expiring -d {{ domain }}  -d www.{{ domain }}
+
+  - name: request letsencrypt ecdsa certificate
+    command: certbot certonly --cert-name {{ domain }}-ecdsa  --key-type ecdsa --elliptic-curve secp384r1 --keep-until-expiring -d {{ domain }}  -d www.{{ domain }}
+
+  - name: create base directories for domains
+    file:
+      path: /var/www/{{ domain }}
+      state: directory
+      owner: www-data
+      group: www-data
+
+  - name: configure domain site
+    template:
+      src: etc/nginx/sites-available/domain.j2
+      dest: /etc/nginx/sites-available/{{ domain }}
+
+  - name: enable domain site
+    file:
+      src: /etc/nginx/sites-available/{{ domain }}
+      dest: /etc/nginx/sites-enabled/{{ domain }}
+      state: link
+
+  - name: reload nginx
+    service:
+      name: nginx
+      state: reloaded
+
+  - name: cronjob
+    cron:
+      name: "{{ domain }}"
+      minute: "*/5"
+      job: "/usr/bin/php -f /var/www/{{ domain }}/wp-cron.php"
+      user: www-data
+
+  - name: set mysql root password
+    mysql_user:
+      name: root
+      password: "{{ mysql_root_password }}"
+
+  - name: set mysql root password in /root/.my.cnf
+    register: mysql_conf_root
+    copy:
+      content: "[client]\nuser=root\npassword={{ mysql_root_password }}"
+      dest: /root/.my.cnf
+      mode: "0600"
+
+  - name: restart mysql
+    when: mysql_conf_root.changed
+    service:
+      name: mysql
+      state: restarted
+
+  - name: create mysql database
+    mysql_db:
+      name: "{{ mysql_user_database }}"
+      state: present
+
+  - name: create mysql user
+    mysql_user:
+      name: "{{ mysql_user_database }}"
+      password: "{{ mysql_password }}"
+      priv: "{{ mysql_user_database }}.*:ALL,GRANT"
+      state: present
+
+  - name: download WordPress
+    unarchive:
+      src: https://wordpress.org/latest.tar.gz
+      dest: /var/www/{{ domain }}
+      remote_src: yes
+      owner: www-data
+      group: www-data
+      extra_opts:
+      - --xform
+      - s/wordpress//
+
+  - name: check if WordPress is installed
+    stat:
+      path=/var/www/{{ domain }}/wp-config.php
+    register: installed
+
+  - name: setup wp-config
+    when: installed.stat.exists == False
+    command: mv /var/www/{{ domain }}/wp-config-sample.php /var/www/{{ domain }}/wp-config.php
+
+  - name: get salts for wp-config
+    when: installed.stat.exists == False
+    uri:
+      url: "https://api.wordpress.org/secret-key/1.1/salt/"
+      return_content: True
+      method: GET
+    register: salt
+
+  - name: configure wp-config
+    when: installed.stat.exists == False
+    copy:
+      dest: /var/www/{{ domain }}/wp-config.php
+      content: |
+        <?php
+        define('DB_NAME',          '{{ mysql_user_database }}' );
+        define('DB_USER',          '{{ mysql_user_database }}' );
+        define('DB_PASSWORD',      '{{ mysql_password }}' );
+        define('DB_HOST',          'localhost' );
+        {{ salt.content }}
+        define('WP_DEBUG',         false );
+        define('DISABLE_WP_CRON',  true);
+        $table_prefix = 'wp_';
+        if ( ! defined( 'ABSPATH' ) ) {
+          define( 'ABSPATH', __DIR__ . '/' );
+        }
+        require_once ABSPATH . 'wp-settings.php';
+
+  - name: install wp-cli
+    get_url:
+      url: https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar
+      dest: /usr/local/bin/wp
+      mode: 0755
+
+  - name: install database tables
+    become: true
+    become_user: www-data
+    command: wp core install --path=/var/www/{{ domain }} --url="https://{{ domain }}" --title="{{ title }}" --admin_user="{{ wordpress_user }}" --admin_password="{{ wordpress_password }}" --admin_email="{{ wordpress_email }}"
+    when: installed.stat.exists == False
