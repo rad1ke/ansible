@@ -15,6 +15,7 @@
         - php-gd
         - php-curl
         - php-apcu
+        - php-imagick
         - mariadb-server
         - python3-mysqldb
         - certbot
