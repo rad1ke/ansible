@@ -28,9 +28,18 @@
   - name: configure sshd_config
     register: sshd_config
     copy:
-      content: "ChallengeResponseAuthentication no\nUsePAM yes\nX11Forwarding no \nPrintMotd no\nAcceptEnv LANG LC_*\nSubsystem sftp /usr/lib/openssh/sftp-server\nPasswordAuthentication no\nPrintLastLog no"
       dest: /etc/ssh/sshd_config
       validate: /usr/sbin/sshd -T -f %s
+      content: |
+        Include /etc/ssh/sshd_config.d/*.conf
+        ChallengeResponseAuthentication no
+        UsePAM yes
+        X11Forwarding no
+        PrintMotd no
+        AcceptEnv LANG LC_*
+        Subsystem sftp /usr/lib/openssh/sftp-server
+        PasswordAuthentication no
+        PrintLastLog no
 
   - name: restart sshd
     when: sshd_banner.changed or sshd_motd.changed or sshd_config.changed
