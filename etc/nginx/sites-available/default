@@ -3,11 +3,7 @@ server {
   listen [::]:80 default_server;
 
   include snippets/www.conf;
-
-  location /.well-known/acme-challenge/ {
-    default_type "text/plain";
-    root /var/www/html;
-  }
+  include snippets/acme.conf;
 
   location / {
     return 301 https://$host$request_uri;

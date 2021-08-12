@@ -34,6 +34,11 @@
       src: etc/nginx/snippets/ssl.conf
       dest: /etc/nginx/snippets/ssl.conf
 
+  - name: configure nginx acme.conf
+    copy:
+      src: etc/nginx/snippets/acme.conf
+      dest: /etc/nginx/snippets/acme.conf
+
   - name: configure nginx dir.conf
     copy:
       src: etc/nginx/snippets/dir.conf
