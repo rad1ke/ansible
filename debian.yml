@@ -2,12 +2,12 @@
 - hosts: all
   tasks:
 
-  - name: disable grub timeout
+  - name: reduce grub timeout when booting
     register: grub
     lineinfile:
       path: /etc/default/grub
       regexp: "^GRUB_TIMEOUT="
-      line: "GRUB_TIMEOUT=0"
+      line: "GRUB_TIMEOUT=1"
 
   - name: update grub bootloader
     when: grub.changed
